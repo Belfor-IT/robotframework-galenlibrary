@@ -19,21 +19,21 @@
     <module>galen-rainbow4j</module>
     <module>galen-core</module>
     <module>galen-java-support</module>
+    <module>galen-robot-bridge</module>
     <module>galen-integration-tests</module>
     <module>galen-distribution</module>
   </modules>
 
   <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</sonatypeOssDistMgmtSnapshotsUrl>
 
     <!-- VERSION NUMBERS -->
-    <selenium.version>3.14.0</selenium.version>
+    <selenium.version>4.51.0</selenium.version>
     <commons-io.version>2.6</commons-io.version>
     <commons-cli.version>1.4</commons-cli.version>
-    <phantomjsdriver.version>1.2.1</phantomjsdriver.version>
     <rhino.version>1.7.7.2</rhino.version>
     <slf4j.version>1.7.10</slf4j.version>
     <commons-lang3.version>3.8.1</commons-lang3.version>
@@ -50,7 +50,7 @@
 
     <!-- maven plugins -->
     <maven-assembly-plugin.version>2.5.3</maven-assembly-plugin.version>
-    <maven-compiler-plugin.version>2.3.2</maven-compiler-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <maven-release-plugin.version>2.5.2</maven-release-plugin.version>
     <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
     <maven-frontend-plugin.version>1.0</maven-frontend-plugin.version>
@@ -212,12 +212,6 @@
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
         <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <!-- see https://github.com/detro/ghostdriver/issues/397 -->
-        <groupId>com.codeborne</groupId>
-        <artifactId>phantomjsdriver</artifactId>
-        <version>${phantomjsdriver.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
