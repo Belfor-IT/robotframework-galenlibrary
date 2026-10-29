@@ -1,0 +1,28 @@
+@objects
+    header          id  header
+    menu            id  menu
+    content         id  content
+    side-panel      id  side-panel
+
+= Main section =
+    header:
+        inside screen 0px top left right
+        height 80px
+
+    menu:
+        below header 0px
+        height 40px
+
+    @on desktop
+        side-panel:
+            visible
+            width 200px
+            inside screen 0px right
+
+    @on mobile
+        side-panel:
+            absent
+
+    @on broken
+        menu:
+            height 100px

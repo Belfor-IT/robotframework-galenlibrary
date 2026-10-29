@@ -166,11 +166,6 @@ public class MockedDriver implements WebDriver, TakesScreenshot, JavascriptExecu
             }
 
             @Override
-            public ImeHandler ime() {
-                return null;
-            }
-
-            @Override
             public Window window() {
                 return new Window() {
                     @Override
@@ -195,6 +190,11 @@ public class MockedDriver implements WebDriver, TakesScreenshot, JavascriptExecu
 
                     @Override
                     public void maximize() {
+
+                    }
+
+                    @Override
+                    public void minimize() {
 
                     }
 

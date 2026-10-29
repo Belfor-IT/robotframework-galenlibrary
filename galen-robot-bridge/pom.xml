@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>galen-robot-bridge</artifactId>
+  <name>Galen Framework bridge for Robot Framework</name>
+  <description>
+    Command line bridge used by the robotframework-galenframework Python package. It attaches to an
+    already running WebDriver session (e.g. opened by SeleniumLibrary) and runs a Galen layout check on it.
+  </description>
+  <packaging>jar</packaging>
+
+  <parent>
+    <groupId>com.galenframework</groupId>
+    <artifactId>galen-parent</artifactId>
+    <version>2.4.5-SNAPSHOT</version>
+  </parent>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.galenframework</groupId>
+      <artifactId>galen-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.4</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <finalName>galen-robot-bridge</finalName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <artifactSet>
+                <excludes>
+                  <!-- Chrome DevTools Protocol bindings (one set per Chrome version) are not used by the bridge -->
+                  <exclude>org.seleniumhq.selenium:selenium-devtools-*</exclude>
+                </excludes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <!-- the bridge attaches to running sessions and never has to locate a browser driver -->
+                  <artifact>org.seleniumhq.selenium:selenium-manager</artifact>
+                  <excludes>
+                    <exclude>org/openqa/selenium/manager/*/**</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.galenframework.robot.GalenBridge</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>manual</distribution>
+    </license>
+  </licenses>
+</project>
