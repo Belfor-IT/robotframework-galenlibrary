@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -30,8 +31,7 @@ import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.ie.InternetExplorerDriver;
-import org.openqa.selenium.phantomjs.PhantomJSDriver;
-import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.ie.InternetExplorerOptions;
 import org.openqa.selenium.safari.SafariDriver;
 
 import java.util.Collections;
@@ -97,16 +97,17 @@ public class SeleniumBrowserFactory implements BrowserFactory {
     public static WebDriver getDriver(String browserType, boolean headless){
         
         if ( StringUtils.isEmpty(browserType) || FIREFOX.equals(browserType)) {
-            return new FirefoxDriver(SeleniumBrowserFactory.getBrowserCapabilities(browserType, headless));
+            return new FirefoxDriver(firefoxOptions(headless));
         }
         else if (CHROME.equals(browserType)) {
-            return new ChromeDriver(SeleniumBrowserFactory.getBrowserCapabilities(browserType, headless));
+            return new ChromeDriver(chromeOptions(headless));
         }
         else if (IE.equals(browserType)) {
-            return new InternetExplorerDriver(SeleniumBrowserFactory.getBrowserCapabilities(browserType, false));
+            return new InternetExplorerDriver(internetExplorerOptions());
         }
         else if (PHANTOMJS.equals(browserType)) {
-            return new PhantomJSDriver();
+            // PhantomJS is no longer maintained and Selenium 4 has no driver for it
+            throw new RuntimeException("PhantomJS is not supported anymore, use \"chrome\" or \"firefox\" with headless mode instead");
         }
         else if (SAFARI.equals(browserType)) {
             return new SafariDriver();
@@ -119,27 +120,40 @@ public class SeleniumBrowserFactory implements BrowserFactory {
         }
     }
 
-    public static DesiredCapabilities getBrowserCapabilities(String driverParameter, boolean headless) {
-        DesiredCapabilities capabilities = null;
+    public static MutableCapabilities getBrowserCapabilities(String driverParameter, boolean headless) {
         if (driverParameter == null || driverParameter.equalsIgnoreCase(FIREFOX)) {
-            capabilities = DesiredCapabilities.firefox();
-            FirefoxOptions options = new FirefoxOptions();
-            options.setHeadless(headless);
-            capabilities.merge(options);
+            return firefoxOptions(headless);
         }
         else if (driverParameter.equalsIgnoreCase(IE)) {
-            capabilities = DesiredCapabilities.internetExplorer();
-            capabilities.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS, true);
-            capabilities.setCapability(InternetExplorerDriver.IE_ENSURE_CLEAN_SESSION, true);
+            return internetExplorerOptions();
         }
         else if (driverParameter.equalsIgnoreCase(CHROME)) {
-            capabilities = DesiredCapabilities.chrome();
-            ChromeOptions options = new ChromeOptions();
-            options.setHeadless(headless);
-            options.setExperimentalOption("excludeSwitches", Collections.singletonList("enable-automation"));
-            capabilities.merge(options);
+            return chromeOptions(headless);
         }
-        return capabilities;
+        return null;
+    }
+
+    private static FirefoxOptions firefoxOptions(boolean headless) {
+        FirefoxOptions options = new FirefoxOptions();
+        if (headless) {
+            options.addArguments("-headless");
+        }
+        return options;
+    }
+
+    private static ChromeOptions chromeOptions(boolean headless) {
+        ChromeOptions options = new ChromeOptions();
+        if (headless) {
+            options.addArguments("--headless=new");
+        }
+        options.setExperimentalOption("excludeSwitches", Collections.singletonList("enable-automation"));
+        return options;
+    }
+
+    private static InternetExplorerOptions internetExplorerOptions() {
+        return new InternetExplorerOptions()
+            .introduceFlakinessByIgnoringSecurityDomains()
+            .destructivelyEnsureCleanSession();
     }
 
     @Override

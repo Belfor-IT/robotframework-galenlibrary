@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robotframework-galenframework"
+dynamic = ["version"]
+description = "Robot Framework library for layout testing with Galen Framework"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [{ name = "Belfor-IT" }]
+keywords = ["robotframework", "galen", "layout", "responsive", "testing", "selenium"]
+classifiers = [
+    "Framework :: Robot Framework",
+    "Framework :: Robot Framework :: Library",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "robotframework>=6.1",
+    "robotframework-seleniumlibrary>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff", "build"]
+
+[project.scripts]
+galen-approve = "GalenLibrary.approve:main"
+
+[project.urls]
+Homepage = "https://github.com/Belfor-IT/robotframework-galenlibrary"
+
+[tool.setuptools.dynamic]
+version = { attr = "GalenLibrary.version.VERSION" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+GalenLibrary = ["java/*.jar"]
+
+[tool.pytest.ini_options]
+testpaths = ["utest"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "W"]
+ignore = ["E501"]
