@@ -83,6 +83,19 @@ Robot Framework test
               └── Galen core: layout checks, screenshots, image comparison
 ```
 
+What happens when a keyword runs:
+
+1. GalenLibrary asks SeleniumLibrary for the current WebDriver session (session id and driver URL).
+2. A layout keyword such as `Element Should Be Below` is turned into a small Galen spec. `Check
+   Layout` uses your own `.gspec` file instead.
+3. The spec, or the screenshot request for a baseline keyword, goes to the bridge as one JSON line.
+4. The bridge attaches to the session, runs Galen and sends back the result.
+5. GalenLibrary passes or fails the keyword and writes Galen's message, the report link and, for
+   baselines, the images and heatmap to `log.html`.
+
+The browser is never restarted, so whatever the test did before (logging in, filling in a form,
+resizing the window) is what Galen checks.
+
 Installation
 ------------
 
@@ -98,6 +111,131 @@ pip install robotframework_galenframework-0.3.0-py3-none-any.whl
 ```
 
 The same wheel works on Windows, Linux and macOS.
+
+Using it in Robot Framework, step by step
+-----------------------------------------
+
+**1. Import both libraries.** SeleniumLibrary opens the browser, GalenLibrary checks it.
+
+```robotframework
+*** Settings ***
+Library    SeleniumLibrary
+Library    GalenLibrary    baseline_dir=${CURDIR}/baselines
+```
+
+**2. Open the page with a fixed window size.** Layout and screenshots depend on the window size,
+and the baseline folder name includes it (`chrome-linux-1280x900`).
+
+```robotframework
+*** Keywords ***
+Open Page For Visual Test
+    Open Browser    ${URL}    headlesschrome
+    Set Window Size    1280    900
+```
+
+**3. Make the page stable.** Turn off animations, transitions and the blinking cursor, and wait
+for fonts, otherwise screenshots differ from run to run.
+
+```robotframework
+Make Page Stable
+    Execute Javascript
+    ...    var s = document.createElement('style');
+    ...    s.textContent = '*, *::before, *::after { transition: none !important; animation: none !important; caret-color: transparent !important; }';
+    ...    document.head.appendChild(s);
+    Wait For Condition    return document.fonts.status === 'loaded'
+```
+
+**4. Check hard design rules with layout keywords.**
+
+```robotframework
+*** Test Cases ***
+Buttons Have The Right Size And Position
+    Element Height Should Be      css:[data-testid="save"]    40px
+    Element Should Be Left Of     css:[data-testid="save"]    css:[data-testid="cancel"]    12px
+    Elements Should Be Aligned    css:.button    direction=horizontally    edge=top
+```
+
+**5. Compare components with baselines.** Use one baseline per component and per state (hover,
+focus, error). The first run creates the baseline; later runs compare with it.
+
+```robotframework
+Save Button
+    Element Should Match Baseline    css:[data-testid="save"]    name=save-button
+    Mouse Over                       css:[data-testid="save"]
+    Element Should Match Baseline    css:[data-testid="save"]    name=save-button-hover
+```
+
+Wrap the comparison in `Run Keyword And Continue On Failure` to see all differences of a test in
+one run. Use `ignore=` for parts that change by themselves, such as dates.
+
+**6. Look at the result.** On a difference, `log.html` shows baseline, actual screenshot and
+heatmap. The new screenshot is kept in `results/galen-pending/`.
+
+**7. Approve intended changes.**
+
+```bash
+python -m GalenLibrary.approve results                    # approve everything
+python -m GalenLibrary.approve results "*/save-button*"   # only matching baselines
+python -m GalenLibrary.approve results --list             # only show what is pending
+```
+
+**8. Run in CI.** Make and compare baselines on the CI runner (or an identical machine), and run
+with `--variable GALEN_MISSING_BASELINE:fail` so a missing baseline fails the pipeline instead of
+being created silently. Approved baselines go back into git through a merge request.
+
+```bash
+robot --outputdir results --variable GALEN_MISSING_BASELINE:fail tests
+```
+
+Keywords
+--------
+
+| Keyword | Arguments | What it checks or does |
+|---|---|---|
+| **Position** | | |
+| `Element Should Be Above` | `locator, reference, distance=None` | `locator` is above `reference`, optionally at a distance |
+| `Element Should Be Below` | `locator, reference, distance=None` | `locator` is below `reference` |
+| `Element Should Be Left Of` | `locator, reference, distance=None` | `locator` is left of `reference` |
+| `Element Should Be Right Of` | `locator, reference, distance=None` | `locator` is right of `reference` |
+| `Element Should Be Inside` | `locator, container, offsets=None, partly=False` | `locator` lies inside `container`, optionally with distances to its edges |
+| `Element Should Be Near` | `locator, reference, offsets` | `locator` is close to `reference` at the given sides |
+| `Element Should Be Centered` | `locator, container, direction=all, tolerance=None` | Centered in `container` (`all`, `horizontally`, `vertically`) |
+| `Elements Should Be Aligned` | `*locators, direction=horizontally, edge=all, tolerance=0` | Elements are in one row or column |
+| **Size and style** | | |
+| `Element Width Should Be` | `locator, expected` | Width, e.g. `200px`, `190 to 210px`, `50% of viewport/width` |
+| `Element Height Should Be` | `locator, expected` | Height, same notation |
+| `Element Css Property Should Be` | `locator, property, expected, match=is` | Computed CSS value (`is`, `contains`, `starts`, `ends`, `matches`) |
+| `Element Color Scheme Should Be` | `locator, scheme` | Colours in a screenshot, e.g. `> 70% #1f3a5f` |
+| `Element Should Satisfy Spec` | `locator, *specs, **references` | Raw Galen spec lines, for anything else |
+| **Spec files** | | |
+| `Check Layout` | `spec, tags=None, exclude_tags=None, properties=None, variables=None, title=None, fail_on_error=True, full_page=False` | Runs a complete `.gspec` file, optionally for some tags only |
+| **Baselines** | | |
+| `Element Should Match Baseline` | `locator, name=None, max_difference=0%, tolerance=None, ignore=None, analyze_offset=0, full_page=False` | Compares an element with its baseline screenshot |
+| `Page Should Match Baseline` | `name=None, max_difference=0%, tolerance=None, ignore=None, analyze_offset=0, full_page=False` | Compares the visible page (or the whole page) with its baseline |
+| `Capture Baseline` | `locator=viewport, name=None, full_page=False` | Stores a screenshot as baseline without comparing |
+| **Settings** | | |
+| `Set Baseline Directory` | `path` | Changes the baseline folder; returns the previous one |
+| `Set Galen Report Directory` | `path` | Changes the folder for Galen reports and comparison images |
+
+Locators are written as in SeleniumLibrary (`id:`, `css:`, `xpath:`, `class:`, `name:`, `tag:`,
+`link:`, `partial link:`). `screen` and `viewport` can be used as containers.
+
+`max_difference` is a percentage (`0.5%`) or a number of pixels (`200px`). `tolerance` is the
+colour difference per pixel that still counts as equal (default 25).
+
+### Import arguments
+
+| Argument | Default | Meaning |
+|---|---|---|
+| `baseline_dir` | `${EXECDIR}/baselines` | Folder with the baseline screenshots |
+| `baseline_subfolder` | `{browser}-{platform}-{width}x{height}` | Subfolder per environment; `NONE` for none |
+| `missing_baseline` | `create` | `create` stores a missing baseline, `fail` fails the keyword (also `GALEN_MISSING_BASELINE`) |
+| `update_baselines` | `False` | Replace baselines instead of comparing (also `GALEN_UPDATE_BASELINES`) |
+| `tolerance` | `25` | Default per-pixel colour tolerance |
+| `report_dir` | `${OUTPUT DIR}/galen-reports` | Folder for Galen reports and images |
+| `java_path` / `jar_path` | from `JAVA_HOME` / bundled jar | Other Java or bridge jar |
+| `timeout` | `300` | Seconds to wait for the Galen engine |
+| `selenium_library` | `SeleniumLibrary` | Name of the SeleniumLibrary import, if it has an alias |
 
 Building
 --------
