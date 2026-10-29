@@ -18,11 +18,15 @@ Three ways to test, freely combined:
 ## Installation
 
 ```bash
-pip install robotframework-galenframework
+pip install robotframework_galenframework-0.3.0-py3-none-any.whl
 ```
 
 Requirements: Python 3.9+, Java 11+ (on `PATH` or via `JAVA_HOME`). SeleniumLibrary is installed
 automatically. The Galen engine is bundled in the wheel.
+
+The library is not on PyPI. Take the wheel from a
+[GitHub release](https://github.com/Belfor-IT/robotframework-galenlibrary/releases) or build it
+yourself (see [Development](#development)).
 
 ## Layout keywords
 
