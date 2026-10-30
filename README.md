@@ -53,8 +53,10 @@ Highlights:
   `${OUTPUT DIR}/galen-pending`. `python -m GalenLibrary.approve` (or `galen-approve`) copies the
   approved screenshots over the baselines. In CI, `GALEN_MISSING_BASELINE:fail` makes missing
   baselines a failure, and all of them are collected in one run.
-- **Long pages**: elements below the first screen are scrolled into view automatically;
-  `full_page=True` stitches the whole page when you need it.
+- **Long pages**: elements below the first screen are scrolled into view automatically, also
+  inside a scrolling container such as `div.content-body`, and the scroll positions are restored
+  afterwards. `full_page=True` stitches the whole page when you need it, but it scrolls only the
+  window, so it does not work when a container scrolls instead.
 
 Full keyword documentation: [robotframework-galenframework/README.md](robotframework-galenframework/README.md)
 and [docs/GalenLibrary.html](robotframework-galenframework/docs/GalenLibrary.html).
@@ -107,7 +109,7 @@ The library is not on PyPI. Install the wheel from a
 yourself (see below):
 
 ```bash
-pip install robotframework_galenframework-0.3.0-py3-none-any.whl
+pip install robotframework_galenframework-0.3.1-py3-none-any.whl
 ```
 
 The same wheel works on Windows, Linux and macOS.
