@@ -202,11 +202,14 @@ class VisualKeywords(GalenContext):
           pixels.
         - ``full_page``: only needed for elements that are higher or wider than the window.
           The screenshot is then made by scrolling and stitching, which repeats sticky and
-          fixed elements (such as a sticky header) in the image.
+          fixed elements (such as a sticky header) in the image. Only the window is scrolled,
+          so it does not work on pages where a container (e.g. ``div.content-body`` with
+          ``overflow: auto``) scrolls instead of the window; compare smaller parts there.
 
-        An element that is outside the window, for example far down a long page, is scrolled
-        into view automatically (centred) and the scroll position is restored afterwards.
-        With ``full_page=True`` an element that fits in the window is handled the same way.
+        An element that is out of view, far down a long page or in a scrolling container, is
+        scrolled into view automatically (centred) and the scroll positions of the window and
+        the containers are restored afterwards. With ``full_page=True`` an element that fits in
+        the window is handled the same way.
 
         When the baseline does not exist yet it is created and the keyword passes with a
         warning. With ``missing_baseline=fail`` (import argument, or

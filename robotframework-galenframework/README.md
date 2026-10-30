@@ -91,10 +91,11 @@ Whole Page Without The Banner
   - `analyze_offset`: accept the image when it is shifted by a few pixels.
   - `full_page=True`: only for elements higher or wider than the window, or for the whole page
     with `Page Should Match Baseline`. It scrolls and stitches screenshots, so sticky and fixed
-    elements (a sticky header) appear several times.
-- **Long pages**: an element far down the page is scrolled into view automatically (and the
-  scroll position restored), so on a long page, such as a page with all components, compare
-  per element rather than the whole page.
+    elements (a sticky header) appear several times. It scrolls only the window, so it does not
+    work when a container such as `div.content-body` scrolls instead.
+- **Long pages**: an element far down the page, also inside a scrolling container, is scrolled
+  into view automatically (and the scroll positions restored), so on a long page, such as a
+  page with all components, compare per element rather than the whole page.
 - **Intended change**: approve the new screenshots of the failed comparisons (below), run once
   with `--variable GALEN_UPDATE_BASELINES:True` to replace all baselines, or use
   `Capture Baseline`.
