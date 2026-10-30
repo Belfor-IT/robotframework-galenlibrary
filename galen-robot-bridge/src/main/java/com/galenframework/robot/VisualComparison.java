@@ -28,6 +28,7 @@ import com.galenframework.specs.page.Locator;
 import com.galenframework.page.selenium.WebPageElement;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -212,8 +213,9 @@ public class VisualComparison {
 
     /**
      * Takes the screenshot for {@code locator}. Unless it is stitched, the element is scrolled into view when
-     * it is mostly outside the window; the element and the ignored regions are then moved from document
-     * to screenshot coordinates. The original scroll position is restored afterwards.
+     * it is mostly hidden, by the window or by a scrolling container such as a {@code div} with
+     * {@code overflow: auto}; it is then measured again. The element and the ignored regions are moved from
+     * document to screenshot coordinates. The original scroll positions are restored afterwards.
      */
     private Shot screenshot(LocatorDto locator, List<LocatorDto> ignore) {
         Rect rect = documentArea(locator);
@@ -226,12 +228,11 @@ public class VisualComparison {
         GalenConfig.getConfig().setProperty(GalenProperty.SCREENSHOT_FULLPAGE, Boolean.toString(stitch));
         boolean scrolled = stitch;
         try {
-            if (!stitch && isElement(locator) && !mostlyInside(rect, state)) {
-                PageElement element = page.getObject(toLocator(locator));
-                ((JavascriptExecutor) driver).executeScript(
-                        "arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});",
-                        ((WebPageElement) element).getWebElement());
+            if (!stitch && isElement(locator) && visibleFraction(webElement(locator)) < 0.5) {
+                ((JavascriptExecutor) driver).executeScript(SCROLL_INTO_VIEW, webElement(locator));
                 scrolled = true;
+                // Scrolling a container moves the element within the document, not only within the window
+                rect = documentArea(locator);
                 state = scrollState();
             }
             int offsetX = stitch ? 0 : (int) state[0];
@@ -253,8 +254,7 @@ public class VisualComparison {
             return shot;
         } finally {
             if (scrolled) {
-                ((JavascriptExecutor) driver).executeScript("window.scrollTo(arguments[0], arguments[1]);",
-                        original[0], original[1]);
+                ((JavascriptExecutor) driver).executeScript(RESTORE_SCROLL, original[0], original[1]);
             }
         }
     }
@@ -279,14 +279,52 @@ public class VisualComparison {
         return !VIEWPORT.equals(locator.type) && !SCREEN.equals(locator.type);
     }
 
-    /** Whether at least half of {@code rect} (document coordinates) is inside the window. */
-    private static boolean mostlyInside(Rect rect, long[] state) {
-        long left = Math.max(rect.getLeft(), state[0]);
-        long top = Math.max(rect.getTop(), state[1]);
-        long right = Math.min(rect.getLeft() + rect.getWidth(), state[0] + state[2]);
-        long bottom = Math.min(rect.getTop() + rect.getHeight(), state[1] + state[3]);
-        long full = (long) Math.max(1, rect.getWidth()) * Math.max(1, rect.getHeight());
-        return right > left && bottom > top && (double) (right - left) * (bottom - top) / full >= 0.5;
+    /**
+     * Fraction (0-1) of {@code element} that can be seen: inside the window and inside the visible part of
+     * every ancestor that clips its content ({@code overflow} other than {@code visible}).
+     */
+    private double visibleFraction(WebElement element) {
+        Object fraction = ((JavascriptExecutor) driver).executeScript(
+                "var el = arguments[0], r = el.getBoundingClientRect();"
+                        + "var left = Math.max(r.left, 0), top = Math.max(r.top, 0);"
+                        + "var right = Math.min(r.right, window.innerWidth), bottom = Math.min(r.bottom, window.innerHeight);"
+                        + "for (var n = el.parentElement; n && n !== document.body && n !== document.documentElement;"
+                        + "        n = n.parentElement) {"
+                        + "  var s = getComputedStyle(n);"
+                        + "  if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;"
+                        + "  var c = n.getBoundingClientRect();"
+                        + "  var cl = c.left + n.clientLeft, ct = c.top + n.clientTop;"
+                        + "  left = Math.max(left, cl); top = Math.max(top, ct);"
+                        + "  right = Math.min(right, cl + n.clientWidth); bottom = Math.min(bottom, ct + n.clientHeight);"
+                        + "}"
+                        + "var full = Math.max(1, r.width) * Math.max(1, r.height);"
+                        + "return right > left && bottom > top ? (right - left) * (bottom - top) / full : 0;",
+                element);
+        return ((Number) fraction).doubleValue();
+    }
+
+    /**
+     * Remembers the scroll position of every scrolled or scrollable ancestor of {@code arguments[0]}, then
+     * scrolls it into view. Scrolls the window and any containers in between.
+     */
+    private static final String SCROLL_INTO_VIEW =
+            "var el = arguments[0], saved = [];"
+                    + "for (var n = el.parentElement; n; n = n.parentElement) {"
+                    + "  if (n.scrollTop || n.scrollLeft || n.scrollHeight > n.clientHeight || n.scrollWidth > n.clientWidth) {"
+                    + "    saved.push([n, n.scrollLeft, n.scrollTop]);"
+                    + "  }"
+                    + "}"
+                    + "window.__galenSavedScroll = saved;"
+                    + "el.scrollIntoView({block: 'center', inline: 'nearest'});";
+
+    /** Restores the containers saved by {@link #SCROLL_INTO_VIEW} and the window ({@code arguments[0..1]}). */
+    private static final String RESTORE_SCROLL =
+            "(window.__galenSavedScroll || []).forEach(function (s) { s[0].scrollLeft = s[1]; s[0].scrollTop = s[2]; });"
+                    + "delete window.__galenSavedScroll;"
+                    + "window.scrollTo(arguments[0], arguments[1]);";
+
+    private WebElement webElement(LocatorDto locator) {
+        return ((WebPageElement) page.getObject(toLocator(locator))).getWebElement();
     }
 
     /** Area of {@code locator} in document coordinates. */

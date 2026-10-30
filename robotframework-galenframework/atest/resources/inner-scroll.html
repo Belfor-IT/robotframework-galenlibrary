@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GalenLibrary inner scroll</title>
+<style>
+  /* The window itself does not scroll: div.content-body does, as in many application layouts. */
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
+  #header { height: 60px; background: #123456; color: #fff; }
+  #header span { display: inline-block; margin: 18px 16px; }
+  .content-body { position: absolute; top: 60px; bottom: 0; left: 0; right: 0; overflow: auto; }
+  #panel { width: 400px; height: 300px; margin: 16px; overflow: auto; border: 1px solid #999; }
+  .panel-item { height: 100px; box-sizing: border-box; padding: 12px; }
+  .panel-item:nth-child(odd) { background: #e8f5e9; }
+  .panel-item:nth-child(even) { background: #fff3e0; }
+  .row { height: 200px; box-sizing: border-box; padding: 16px; font-size: 20px; }
+  .row:nth-child(odd) { background: #fde7c8; }
+  .row:nth-child(even) { background: #d8ecf7; }
+  .stamp { display: inline-block; margin-left: 24px; color: #a00; }
+  #bottom-box { width: 200px; height: 60px; margin: 16px; background: #e67e22; }
+</style>
+</head>
+<body>
+<div id="header"><span>Fixed header</span></div>
+<div class="content-body" id="content">
+  <div id="panel"></div>
+  <div id="rows"></div>
+  <div id="bottom-box"></div>
+</div>
+<script>
+  // A panel of 10 items of 100px in a 300px box, then 20 rows of 200px.
+  var panel = document.getElementById('panel');
+  for (var i = 1; i <= 10; i++) {
+    var item = document.createElement('div');
+    item.className = 'panel-item';
+    item.id = 'panel-item-' + i;
+    item.textContent = 'Panel item ' + i;
+    panel.appendChild(item);
+  }
+  var rows = document.getElementById('rows');
+  for (var j = 1; j <= 20; j++) {
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.id = 'row-' + j;
+    row.innerHTML = 'Row ' + j + '<span class="stamp">10:00</span>';
+    rows.appendChild(row);
+  }
+</script>
+</body>
+</html>
